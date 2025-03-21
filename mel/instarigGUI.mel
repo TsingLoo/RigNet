@@ -1,0 +1,214 @@
+// Delete the window if it already exists
+if (`window -exists instaRigWindow`) {
+    deleteUI instaRigWindow;
+}
+
+window -title "InstaRig Auto-Rigging Tool" -widthHeight 400 650 instaRigWindow;
+columnLayout -adjustableColumn true -rowSpacing 10;
+
+// Title and Intro
+text -label "InstaRig Auto-Rigging Tool" -align center -font "boldLabelFont" -height 30;
+separator -style "in" -height 10;
+
+// Current Selection Label
+text -label "Using current scene selection as Geometry Group:" currentSelectionLabel;
+
+// Refresh and Import Buttons
+button -label "Refresh Selection" -command "updateSelectionLabel()";
+button -label "Import External Model File(s)" -command "importExternalModel()";
+separator -style "in" -height 10;
+
+// Symmetry Axis Option
+text -label "Select Symmetry Axis:";
+optionMenu -w 150 symmetryAxisMenu;
+    menuItem -label "None";
+    menuItem -label "X";
+    menuItem -label "Y";
+    menuItem -label "Z";
+    
+// Skeleton Format Option
+text -label "Skeleton Format:";
+optionMenu -w 150 skeletonFormatMenu;
+    menuItem -label "Auto-Generated";
+    menuItem -label "Standard Biped (BIP)";
+    
+
+// Skeleton Detail Level Slider
+text -label "Skeleton Detail Level:";
+floatSliderGrp -field true -min 0.01 -max 0.1 -value 0.05 -step 0.01 skeletonDetailSlider;
+
+// Panel: Skeleton Topology (hierarchical view)
+frameLayout -label "Skeleton Topology" -collapsable true -collapse false skeletonTopoFrame;
+    textScrollList -numberOfRows 6 -allowMultiSelection false skeletonTopologyList;
+setParent ..;
+// Preload dummy hierarchical text in Skeleton Topology Panel
+textScrollList -edit -append "RootJoint" skeletonTopologyList;
+textScrollList -edit -append "    Spine" skeletonTopologyList;
+textScrollList -edit -append "        Head" skeletonTopologyList;
+textScrollList -edit -append "    LeftArm" skeletonTopologyList;
+textScrollList -edit -append "        LeftForeArm" skeletonTopologyList;
+textScrollList -edit -append "    RightArm" skeletonTopologyList;
+textScrollList -edit -append "        RightForeArm" skeletonTopologyList;
+
+// Panel: Skinning Weights (hidden by default)
+frameLayout -label "Skinning Weights" -collapsable true -collapse false -visible false skinWeightsFrame;
+    textScrollList -numberOfRows 4 -allowMultiSelection false skinWeightsList;
+setParent ..;
+
+// Batch Processing Checkbox (with callback to toggle batch list visibility)
+checkBox -label "Enable Batch Processing" -changeCommand "toggleBatchFrame()" batchProcessingCheck;
+
+// Batch Processing List Frame (initially hidden)
+frameLayout -label "Batch Processing List" -collapsable true -collapse false -visible false batchFrame;
+    textScrollList -numberOfRows 4 -allowMultiSelection true batchList;
+    button -label "Add Selected to Batch List" -command "addToBatchList()";
+    button -label "Clear Batch List" -command "clearBatchList()";
+setParent ..;
+
+// One-Click Auto-Rigging Button
+button -label "One-Click Auto-Rigging" -command "autoRigProcedure()";
+
+// Process Log
+text -label "Process Log:";
+textScrollList -numberOfRows 6 -allowMultiSelection false logTextScroll;
+
+showWindow instaRigWindow;
+
+// Update selection label and batch list frame on window open
+updateSelectionLabel();
+toggleBatchFrame();
+
+//---------------------------------------------------------------------
+// Procedure to update the current selection label
+global proc updateSelectionLabel() {
+    string $sel[] = `ls -sl`;
+    string $label;
+    if (size($sel) == 0) {
+        $label = "No geometry is selected now! Please select one or load external.";
+    } else {
+        $label = "Using current scene selection as Geometry Group: ";
+        for ($obj in $sel) {
+            $label += $obj + " ";
+        }
+    }
+    text -edit -label $label currentSelectionLabel;
+}
+
+//---------------------------------------------------------------------
+// Procedure to import external model file(s)
+global proc importExternalModel() {
+    string $files[] = `fileDialog2 -fileMode 4 -caption "Select Model Files to Import" -fileFilter "Model Files (*.obj *.fbx)"`;
+    if (size($files) > 0) {
+        for ($file in $files) {
+            // Determine file extension for proper import type
+            string $ext = `substring $file ((size($file)-2)) ((size($file)))`;
+            if (tolower($ext) == "obj") {
+                file -import -type "OBJ" $file;
+            } else {
+                file -import -type "FBX" $file;
+            }
+            textScrollList -edit -append ("Imported: " + $file) logTextScroll;
+        }
+        updateSelectionLabel();
+    } else {
+        textScrollList -edit -append "No file selected for import." logTextScroll;
+    }
+}
+
+//---------------------------------------------------------------------
+// Toggle visibility of the batch list frame based on the checkbox
+global proc toggleBatchFrame() {
+    int $enabled = `checkBox -query -value batchProcessingCheck`;
+    frameLayout -edit -visible $enabled batchFrame;
+}
+
+//---------------------------------------------------------------------
+// Procedure to add currently selected objects to the batch list
+global proc addToBatchList() {
+    string $sel[] = `ls -sl`;
+    if (size($sel) == 0) {
+        textScrollList -edit -append "No selection to add." logTextScroll;
+    } else {
+        for ($obj in $sel) {
+            // Only add if not already present
+            string $items[] = `textScrollList -query -allItems batchList`;
+            if (!stringArrayContains($obj, $items)) {
+                textScrollList -edit -append $obj batchList;
+            }
+        }
+    }
+}
+
+//---------------------------------------------------------------------
+// Procedure to clear the batch list
+global proc clearBatchList() {
+    textScrollList -edit -removeAll batchList;
+}
+
+//---------------------------------------------------------------------
+// Auto-Rigging procedure (placeholder)
+// Uses the batch list if batch processing is enabled; otherwise, uses the current scene selection.
+global proc autoRigProcedure() {
+    string $geoGroup;
+    int $isBatch = `checkBox -query -value batchProcessingCheck`;
+    if ($isBatch) {
+        string $batchItems[] = `textScrollList -query -allItems batchList`;
+        if (size($batchItems) == 0) {
+            $geoGroup = "No objects in Batch List!";
+        } else {
+            for ($obj in $batchItems) {
+                $geoGroup += $obj + " ";
+            }
+        }
+    } else {
+        string $selection[] = `ls -sl`;
+        if (size($selection) == 0) {
+            $geoGroup = "Entire Mesh (No selection)";
+        } else {
+            for ($obj in $selection) {
+                $geoGroup += $obj + " ";
+            }
+        }
+    }
+    
+    string $symAxis = `optionMenu -query -value symmetryAxisMenu`;
+    float $detailLevel = `floatSliderGrp -query -value skeletonDetailSlider`;
+    string $skelFormat = `optionMenu -query -value skeletonFormatMenu`;
+    
+    string $status = "Auto-Rigging initiated with settings:\n";
+    $status += "Geometry Group: " + $geoGroup + "\n";
+    $status += "Symmetry Axis: " + $symAxis + "\n";
+    $status += "Skeleton Detail: " + $detailLevel + "\n";
+    $status += "Skeleton Format: " + $skelFormat + "\n";
+    $status += "Batch Processing: " + ($isBatch ? "Enabled" : "Disabled");
+    
+    textScrollList -edit -append $status logTextScroll;
+    textScrollList -edit -append "Generating joints, skin weights, and skeleton..." logTextScroll;
+    
+    // --- PLACEHOLDER FOR ACTUAL RIGGING LOGIC ---
+    // Here, the neural network would generate the joint hierarchy and skinning weights.
+    // The following dummy update simulates the hierarchical output for the Skeleton Topology Panel.
+    
+    textScrollList -edit -removeAll skeletonTopologyList;
+    textScrollList -edit -append "RootJoint" skeletonTopologyList;
+    textScrollList -edit -append "    Spine" skeletonTopologyList;
+    textScrollList -edit -append "        Head" skeletonTopologyList;
+    textScrollList -edit -append "    LeftArm" skeletonTopologyList;
+    textScrollList -edit -append "        LeftForeArm" skeletonTopologyList;
+    textScrollList -edit -append "    RightArm" skeletonTopologyList;
+    textScrollList -edit -append "        RightForeArm" skeletonTopologyList;
+    
+    // The Skinning Weights Panel remains hidden.
+    
+    textScrollList -edit -append "Auto-Rigging completed successfully." logTextScroll;
+}
+
+//---------------------------------------------------------------------
+// Helper function: Checks if a string exists within an array
+global proc int stringArrayContains(string $needle, string $haystack[]) {
+    for ($item in $haystack) {
+        if ($item == $needle)
+            return 1;
+    }
+    return 0;
+}
