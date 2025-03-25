@@ -1,8 +1,35 @@
+# InstaRig plugin for Maya
+
+## Setup 
+
+Copy all the content of `modules_InstaRig` to `C:\Users\YOUR_USER_NAME\Documents\maya\modules`, then go to `C:\Users\YOUR_USER_NAME\Documents\maya\modules\InstaRig\scripts\instaRig\core.py`, specify the `RIGNET_PATH` to something like ` C:\Users\YOUR_USER_NAME\anaconda3\envs\rignet"`
+
+
+
+Restart Maya, use the command below to load and show GUI:
+
+```
+loadPlugin "instaRigPlugin";
+//The expected output is 
+//[InstaRig] Backend Starts with RIGNET_PATH C:\Users\cosine\anaconda3\envs\rignet
+//[InstaRig] PyTorch: 1.12.0
+//[InstaRig] CUDA Available: True
+//[InstaRig] CUDA Version: 11.3
+
+InstaRig;
+unloadPlugin instaRigPlugin;
+```
+
+
+
+
+
+
+
 This is the code repository implementing the paper "RigNet: Neural Rigging for Articulated Characters" published on SIGGRAPH 2020 [[Project page]](https://zhan-xu.github.io/rig-net/).
 
 **[2021.07.20]** Another add-on for Blender, 
 implemented by @[L-Medici](https://github.com/L-Medici). Please check the Github [link](https://github.com/L-Medici/Rignet_blender_addon).
-
 
 **[2020.11.23]** There is now a great add-on for Blender based on our work, 
 implemented by @[pKrime](https://github.com/pKrime). Please check the Github [link](https://github.com/pKrime/brignet), and the video [demo](https://www.youtube.com/watch?v=ueLlS3IoeGY&feature=youtu.be). 
