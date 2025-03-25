@@ -212,3 +212,18 @@ global proc int stringArrayContains(string $needle, string $haystack[]) {
     }
     return 0;
 }
+
+// ========== 文件头声明 ==========
+global proc instarigGUI() {
+    // 最小化测试代码
+    print "=== InstaRig GUI Initialized ===\\n";
+
+    // 创建基础 UI
+    string $window = `window -title "InstaRig"`;
+    columnLayout;
+    button -label "Test Button";
+    showWindow $window;
+}
+
+// ========== 自动注册 ==========
+scriptJob -e "SceneOpened" "instarigGUI";
